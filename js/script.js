@@ -1,55 +1,81 @@
-// CREATE AN ARRAY OF EMPLOYEES
-let arrEmployees = [
-    [34123413, "Zak Ruvalcaba", 3424, "zak@vectacorp.com", "Executive"],
-    [23424665, "Sally Smith", 2344, "sally@vectacorp.com", "Administrative"],
-    [12341244, "Mark Martin", 5352, "mark@vectacorp.com", "Sales"],
-    [14545423, "Robin Banks", 7867, "robin@vectacorp.com", "Marketing"],
-    [13413453, "Sue Wedge", 1235, "sue@vectacorp.com", "QA"]
-]
+import { loadEmployees } from './modules/init.js';
 
 // GET DOM ELEMENTS
-let empTable    = document.querySelector('#employees')
-let empCount    = document.querySelector('#empCount')
+const form = document.getElementById('empForm');
+const empTable = document.getElementById('employees');
+const empCount = document.getElementById('empCount');
 
 // BUILD THE EMPLOYEES TABLE WHEN THE PAGE LOADS
-buildGrid(arrEmployees)
+buildGrid();
+
+// ADD EMPLOYEE
+form.addEventListener('submit', (e) => {
+  // PREVENT FORM SUBMISSION
+  e.preventDefault();
+  // GET THE VALUES FROM THE TEXT BOXES
+  const id = document.getElementById('id').value;
+  const name = document.getElementById('name').value;
+  const ext = document.getElementById('ext').value;
+  const email = document.getElementById('email').value;
+  const department = document.getElementById('department').value;
+  // ADD THE NEW EMPLOYEE TO A NEW ARRAY OBJECT
+  const newEmployee = { id, name, ext, email, department };
+  // TODO: Send a request to the server to add the new employee
+  // For now, just rebuild the grid with the existing employees
+  buildGrid();
+  // RESET THE FORM
+  form.reset();
+  // SET FOCUS BACK TO THE ID TEXT BOX
+  document.getElementById('id').focus();
+});
 
 // DELETE EMPLOYEE
-empTable.addEventListener('click', (e) => {
+empTable.addEventListener('click', async (e) => {
     if (e.target.classList.contains('delete')) {
-        // CONFIRM THE DELETE
-        if (confirm('Are you sure you want to delete this employee?')) {
-            // GET THE SELECTED ROWINDEX FOR THE TR (PARENTNODE.PARENTNODE)
-            let rowIndex = e.target.parentNode.parentNode.rowIndex
-            // REMOVE EMPLOYEE FROM ARRAY
-            empTable.deleteRow(rowIndex)
+      // CONFIRM THE DELETE
+      if (confirm('Are you sure you want to delete this employee?')) {
+        // GET THE SELECTED ROWINDEX FOR THE TR (PARENTNODE.PARENTNODE)
+        const rowIndex = e.target.parentNode.parentNode.rowIndex;
+        
+        try {
+          // REMOVE EMPLOYEE ROW FROM TABLE
+          empTable.deleteRow(rowIndex);
+          // UPDATE EMPLOYEE COUNT
+          empCount.textContent = empTable.rows.length - 1;
+        } catch (error) {
+          console.error('Error deleting employee:', error);
         }
+      }
     }
-})
+  });
 
 // BUILD THE EMPLOYEES GRID
-function buildGrid(arrEmployees) {
-    // REMOVE THE EXISTING SET OF ROWS BY REMOVING THE ENTIRE TBODY SECTION
-    empTable.lastElementChild.remove()
-    // REBUILD THE TBODY FROM SCRATCH
-    let tbody = document.createElement('tbody')
-    // LOOP THROUGH THE ARRAY OF EMPLOYEES
-    // REBUILDING THE ROW STRUCTURE
-    for (let employee of arrEmployees) {
-        tbody.innerHTML += 
-        `
-        <tr>
-            <td>${employee[0]}</td>
-            <td>${employee[1]}</td>
-            <td>${employee[2]}</td>
-            <td><a href="mailto:${employee[3]}">${employee[3]}</a></td>
-            <td>${employee[4]}</td>
-            <td><button class="btn btn-sm btn-danger delete">X</button></td>
-        </tr>
-        `
+async function buildGrid() {
+  try {
+    const employees = await loadEmployees();
+    // Remove the existing set of rows by removing the entire tbody section
+    empTable.querySelector('tbody').remove();
+    // Rebuild the tbody from scratch
+    const tbody = document.createElement('tbody');
+    // Loop through the array of employees
+    for (let employee of employees) {
+      // Rebuilding the row structure
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${employee.id}</td>
+        <td>${employee.name}</td>
+        <td>${employee.ext}</td>
+        <td>${employee.email}</td>
+        <td>${employee.department}</td>
+        <td><button class="btn btn-danger btn-sm delete">Delete</button></td>
+      `;
+      tbody.appendChild(row);
     }
-    // BIND THE TBODY TO THE EMPLOYEE TABLE
-    empTable.appendChild(tbody)
-    // UPDATE EMPLOYEE COUNT
-    empCount.value = `(${arrEmployees.length})`
+    // Bind the tbody to the employee table
+    empTable.appendChild(tbody);
+    // Update employee count
+    empCount.textContent = employees.length;
+  } catch (error) {
+    console.error('Error building grid:', error);
+  }
 }
